@@ -13,31 +13,32 @@ wil::unique_hmodule load_dll(_In_ HANDLE hProcess, _In_opt_ PCWSTR _dllName, _Ou
     if (processMachine == IMAGE_FILE_MACHINE_UNKNOWN)
         processMachine = nativeMachine;
     if (_dllName) {
-        dllName = _dllName;
+        dllPath = wil::make_hlocal_string(_dllName);
     }
     else {
-        dllName = L"tmrdll";
         switch (processMachine) {
         case IMAGE_FILE_MACHINE_I386:
-            dllName += L".x86.dll";
+            dllName = L"tmrdll.x86.dll";
             break;
         case IMAGE_FILE_MACHINE_AMD64:
-            dllName += L".x64.dll";
+            dllName = L"tmrdll.x64.dll";
             break;
         case IMAGE_FILE_MACHINE_ARM64:
-            dllName += L"ARM64.dll";
+            dllName = L"tmrdll.ARM64.dll";
             break;
+        default:
+            throw std::invalid_argument("unsupported machine");
         }
-    }
 
-    auto exePath = wil::GetModuleFileNameW();
-    size_t parentLen;
-    if (!wil::try_get_parent_path_range(exePath.get(), &parentLen))
-        throw std::runtime_error("cannot get app dir path");
-    std::wstring parentPath(exePath.get(), exePath.get() + parentLen);
-    PWSTR _dllPath;
-    THROW_IF_FAILED(PathAllocCombine(parentPath.c_str(), dllName.c_str(), PATHCCH_NONE, &_dllPath));
-    dllPath = wil::unique_hlocal_string(_dllPath);
+        auto exePath = wil::GetModuleFileNameW();
+        size_t parentLen;
+        if (!wil::try_get_parent_path_range(exePath.get(), &parentLen))
+            throw std::runtime_error("cannot get app dir path");
+        std::wstring parentPath(exePath.get(), exePath.get() + parentLen);
+        PWSTR _dllPath;
+        THROW_IF_FAILED(PathAllocCombine(parentPath.c_str(), dllName.c_str(), PATHCCH_NONE, &_dllPath));
+        dllPath = wil::unique_hlocal_string(_dllPath);
+    }
 
     auto hModule = LoadLibraryExW(
         dllPath.get(),
@@ -49,6 +50,7 @@ wil::unique_hmodule load_dll(_In_ HANDLE hProcess, _In_opt_ PCWSTR _dllName, _Ou
 }
 
 std::span<const uint8_t> get_shellcode(_In_ HMODULE hModule, _In_ PCSTR entryPoint, _Out_ PDWORD entryOffset, _Out_ PDWORD virtualSize) {
+    // see LDR_IS_RESOURCE
     PCHAR base = (PCHAR)((ULONG_PTR)hModule & ~(ULONG_PTR)3);
 
     PIMAGE_NT_HEADERS32 _ntHdr = (PIMAGE_NT_HEADERS32)(base + ((PIMAGE_DOS_HEADER)base)->e_lfanew);
