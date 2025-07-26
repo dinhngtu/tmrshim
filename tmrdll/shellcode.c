@@ -14,7 +14,7 @@ typedef DWORD(__cdecl* ShimFunc)(PSHELLCODE_ARGS pi);
 #pragma section(".shcode", read, execute)
 #pragma runtime_checks("", off)
 
-static __declspec(safebuffers) __forceinline bool sc_streq(PCSTR a, PCSTR b, size_t N) {
+static __declspec(safebuffers, code_seg(".shcode")) __forceinline bool sc_streq(PCSTR a, PCSTR b, size_t N) {
     if (!b)
         return false;
     bool flag = true;
@@ -24,7 +24,7 @@ static __declspec(safebuffers) __forceinline bool sc_streq(PCSTR a, PCSTR b, siz
     return true;
 }
 
-static __declspec(safebuffers) __forceinline bool sc_strcaseeqW(PCWSTR a, PCWSTR b, size_t N) {
+static __declspec(safebuffers, code_seg(".shcode")) __forceinline bool sc_strcaseeqW(PCWSTR a, PCWSTR b, size_t N) {
     if (!b)
         return false;
     bool flag = true;
@@ -34,7 +34,7 @@ static __declspec(safebuffers) __forceinline bool sc_strcaseeqW(PCWSTR a, PCWSTR
     return true;
 }
 
-static __declspec(safebuffers) __forceinline PPEB getpeb() {
+static __declspec(safebuffers, code_seg(".shcode")) __forceinline PPEB getpeb() {
 #if defined(_M_X64)
     return (PPEB)(__readgsqword(offsetof(TEB, ProcessEnvironmentBlock)));
 #elif defined(_M_IX86)
