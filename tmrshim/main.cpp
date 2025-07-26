@@ -88,13 +88,17 @@ int wmain(int argc, wchar_t** argv) {
             pid);
         THROW_LAST_ERROR_IF_NULL_MSG(hProcess, "error opening process %lu", pid);
 
+        wil::unique_hfile file;
+        wil::unique_handle mapping;
         USHORT targetMachine;
-        auto dll = load_dll(hProcess, dllName, &targetMachine);
+        auto dll = load_dll(hProcess, dllName, file, mapping, &targetMachine);
 
         std::wstring entryPointWide(entryPoint);
         std::string entryPointAscii(entryPointWide.begin(), entryPointWide.end());
         DWORD entryOffset, virtualSize;
-        auto shellcodeSection = get_shellcode(dll.get(), entryPointAscii.c_str(), &entryOffset, &virtualSize);
+        MEMORY_BASIC_INFORMATION mbi;
+        THROW_IF_WIN32_BOOL_FALSE(VirtualQuery(dll.get(), &mbi, sizeof(mbi)) ? TRUE : FALSE);
+        auto shellcodeSection = get_shellcode(dll.get(), mbi.RegionSize, entryPointAscii.c_str(), &entryOffset, &virtualSize);
 
         auto shellcodeMem = VirtualAllocEx(
             hProcess,
@@ -116,7 +120,7 @@ int wmain(int argc, wchar_t** argv) {
         if (written != shellcodeSection.size_bytes())
             throw std::runtime_error("WriteProcessMemory didn't write enough data (shellcode)");
 
-        auto dllPath = wil::GetModuleFileNameW(dll.get());
+        auto dllPath = wil::GetFinalPathNameByHandleW(file.get());
         std::wstring shimFuncWide(shimFunc);
         std::string shimFuncAscii(shimFuncWide.begin(), shimFuncWide.end());
 
