@@ -46,7 +46,7 @@ static __declspec(safebuffers) __forceinline PPEB getpeb() {
 #endif
 }
 
-__declspec(safebuffers, code_seg(".shcode"), noinline, dllexport) DWORD WINAPI shellcode(_In_ LPVOID arg) {
+__declspec(safebuffers, code_seg(".shcode"), noinline) DWORD WINAPI shellcode(_In_ LPVOID arg) {
     wchar_t sKernel32Dll[] = { L'k', L'e', L'r', L'n', L'e', L'l', L'3', L'2', L'.', L'd', L'l', L'l', 0 };
     char sLoadLibraryW[] = { 'L', 'o', 'a', 'd', 'L', 'i', 'b', 'r', 'a', 'r', 'y', 'W', 0 };
     char sGetProcAddress[] = { 'G', 'e', 't', 'P', 'r', 'o', 'c', 'A', 'd', 'd', 'r', 'e', 's', 's', 0 };
@@ -60,22 +60,23 @@ __declspec(safebuffers, code_seg(".shcode"), noinline, dllexport) DWORD WINAPI s
     PLIST_ENTRY link = ppeb->Ldr->InMemoryOrderModuleList.Flink;
 
     PCHAR k32Base = NULL;
-    do {
+    while (link) {
         PLDR_DATA_TABLE_ENTRY entry = (PLDR_DATA_TABLE_ENTRY)CONTAINING_RECORD(link, LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks);
         if (sc_strcaseeqW(sKernel32Dll, (&entry->FullDllName)[1].Buffer, ARRAYSIZE(sKernel32Dll))) {
             k32Base = (uint8_t*)entry->DllBase;
             break;
         }
         link = link->Flink;
-        if (!link || link == ppeb->Ldr->InMemoryOrderModuleList.Flink)
+        if (link == ppeb->Ldr->InMemoryOrderModuleList.Flink)
             break;
-    } while (1);
+    }
     if (!k32Base || ((PIMAGE_DOS_HEADER)k32Base)->e_magic != IMAGE_DOS_SIGNATURE)
         return ERROR_INVALID_FUNCTION;
 
     LoadLibraryWFunc fLoadLibraryW = NULL;
     GetProcAddressFunc fGetProcAddress = NULL;
     GetLastErrorFunc fGetLastError = NULL;
+
     PIMAGE_NT_HEADERS k32NtHdr = (PIMAGE_NT_HEADERS)(k32Base + ((PIMAGE_DOS_HEADER)k32Base)->e_lfanew);
     PIMAGE_DATA_DIRECTORY k32DirExport = &(k32NtHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT]);
     PIMAGE_EXPORT_DIRECTORY k32Exports = (PIMAGE_EXPORT_DIRECTORY)(k32Base + k32DirExport->VirtualAddress);
@@ -107,7 +108,7 @@ __declspec(safebuffers, code_seg(".shcode"), noinline, dllexport) DWORD WINAPI s
     HMODULE shimDll = fLoadLibraryW(parg->DllPath);
     if (!shimDll)
         return fGetLastError();
-    ShimFunc fShimFunc = (ShimFunc)fGetProcAddress(shimDll, parg->EntryPoint);
+    ShimFunc fShimFunc = (ShimFunc)fGetProcAddress(shimDll, parg->ShimFunction);
     if (!fShimFunc)
         return fGetLastError();
     return fShimFunc(parg);

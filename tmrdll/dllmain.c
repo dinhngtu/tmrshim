@@ -28,3 +28,8 @@ DWORD __cdecl ShimIncreaseTimerFrequency(PSHELLCODE_ARGS pi) {
 
     return ERROR_SUCCESS;
 }
+
+DWORD __cdecl ShimMsgBox(PSHELLCODE_ARGS pi) {
+    MessageBoxW(NULL, pi->ShimFunctionArgs, L"Shim", MB_OK);
+    return ERROR_SUCCESS;
+}

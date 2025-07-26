@@ -3,3 +3,4 @@ LIBRARY
 EXPORTS
     shellcode
     ShimIncreaseTimerFrequency
+    ShimMsgBox
