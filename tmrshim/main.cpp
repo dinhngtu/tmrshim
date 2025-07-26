@@ -89,7 +89,8 @@ int wmain(int argc, wchar_t** argv) {
         THROW_LAST_ERROR_IF_NULL_MSG(hProcess, "error opening process %lu", pid);
 
         USHORT targetMachine;
-        auto dll = load_dll(hProcess, dllName, &targetMachine);
+        wil::unique_hlocal_string dllPath;
+        auto dll = load_dll(hProcess, dllName, dllPath, &targetMachine);
 
         std::wstring entryPointWide(entryPoint);
         std::string entryPointAscii(entryPointWide.begin(), entryPointWide.end());
@@ -116,7 +117,6 @@ int wmain(int argc, wchar_t** argv) {
         if (written != shellcodeSection.size_bytes())
             throw std::runtime_error("WriteProcessMemory didn't write enough data (shellcode)");
 
-        auto dllPath = wil::GetModuleFileNameW(dll.get());
         std::wstring shimFuncWide(shimFunc);
         std::string shimFuncAscii(shimFuncWide.begin(), shimFuncWide.end());
 

@@ -1,7 +1,9 @@
 #include "pch.h"
 #include <intrin.h>
 
-wil::unique_hmodule load_dll(_In_ HANDLE hProcess, _In_opt_ PCWSTR _dllName, _Out_ PUSHORT targetMachine) {
+#pragma comment(lib, "Pathcch.lib")
+
+wil::unique_hmodule load_dll(_In_ HANDLE hProcess, _In_opt_ PCWSTR _dllName, _Outref_ wil::unique_hlocal_string& dllPath, _Out_ PUSHORT targetMachine) {
     USHORT processMachine, nativeMachine;
 
     if (!IsWow64Process2(hProcess, &processMachine, &nativeMachine))
@@ -28,7 +30,19 @@ wil::unique_hmodule load_dll(_In_ HANDLE hProcess, _In_opt_ PCWSTR _dllName, _Ou
         }
     }
 
-    auto hModule = LoadLibraryW(dllName.c_str());
+    auto exePath = wil::GetModuleFileNameW();
+    size_t parentLen;
+    if (!wil::try_get_parent_path_range(exePath.get(), &parentLen))
+        throw std::runtime_error("cannot get app dir path");
+    std::wstring parentPath(exePath.get(), exePath.get() + parentLen);
+    PWSTR _dllPath;
+    THROW_IF_FAILED(PathAllocCombine(parentPath.c_str(), dllName.c_str(), PATHCCH_NONE, &_dllPath));
+    dllPath = wil::unique_hlocal_string(_dllPath);
+
+    auto hModule = LoadLibraryExW(
+        dllPath.get(),
+        NULL,
+        LOAD_LIBRARY_AS_IMAGE_RESOURCE | LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE);
     THROW_LAST_ERROR_IF_NULL_MSG(hModule, "error loading target dll '%s'", dllName.c_str());
     *targetMachine = processMachine;
     return wil::unique_hmodule(hModule);
@@ -85,5 +99,5 @@ std::span<const uint8_t> get_shellcode(_In_ HMODULE hModule, _In_ PCSTR entryPoi
 
     *entryOffset = funcOffset - section->VirtualAddress;
     *virtualSize = section->Misc.VirtualSize;
-    return std::span<const uint8_t>((const uint8_t*)hModule + section->VirtualAddress, (size_t)section->SizeOfRawData);
+    return std::span<const uint8_t>((const uint8_t*)base + section->VirtualAddress, (size_t)section->SizeOfRawData);
 }
