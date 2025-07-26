@@ -28,10 +28,7 @@ wil::unique_hmodule load_dll(_In_ HANDLE hProcess, _In_opt_ PCWSTR _dllName, _Ou
         }
     }
 
-    auto hModule = LoadLibraryExW(
-        dllName.c_str(),
-        NULL,
-        LOAD_LIBRARY_AS_IMAGE_RESOURCE | LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE | LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
+    auto hModule = LoadLibraryW(dllName.c_str());
     THROW_LAST_ERROR_IF_NULL_MSG(hModule, "error loading target dll '%s'", dllName.c_str());
     *targetMachine = processMachine;
     return wil::unique_hmodule(hModule);
