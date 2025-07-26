@@ -3,7 +3,7 @@
 
 #pragma comment(lib, "Pathcch.lib")
 
-wil::unique_hmodule load_dll(_In_ HANDLE hProcess, _In_opt_ PCWSTR _dllName, _Outref_ wil::unique_hlocal_string& dllPath, _Out_ PUSHORT targetMachine) {
+wil::unique_hmodule load_dll(_In_ HANDLE hProcess, _In_opt_ PCWSTR _dllName, _Out_ wil::unique_hlocal_string& dllPath, _Out_ PUSHORT targetMachine) {
     USHORT processMachine, nativeMachine;
 
     if (!IsWow64Process2(hProcess, &processMachine, &nativeMachine))
