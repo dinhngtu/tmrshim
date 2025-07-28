@@ -6,6 +6,7 @@
   <PropertyGroup>
     <TargetName>tmr$(PlatformShortName)</TargetName>
     <LinkIncremental>false</LinkIncremental>
+    <UseDebugLibraries>false</UseDebugLibraries>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
   </PropertyGroup>
@@ -18,12 +19,15 @@
       <SupportJustMyCode>false</SupportJustMyCode>
       <ControlFlowGuard>false</ControlFlowGuard>
       <SDLCheck>false</SDLCheck>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
       <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>tmrdll.def</ModuleDefinitionFile>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <CETCompat>false</CETCompat>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <AdditionalOptions></AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
 </Project>
