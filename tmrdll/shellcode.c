@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <intrin.h>
-#include "shellcode_abi.h"
+#include <shellcode_abi.h>
 
 #ifdef _DEBUG
 #define TMR_DEBUGBREAK() __debugbreak()

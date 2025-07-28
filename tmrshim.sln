@@ -14,6 +14,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "include", "include", "{02EA
 		include\shellcode_abi.h = include\shellcode_abi.h
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dogwalk", "dogwalk\dogwalk.vcxproj", "{282AD948-1992-41D2-97D0-DAC5B29641B4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM64 = Debug|ARM64
@@ -60,6 +62,18 @@ Global
 		{42723229-05D7-4D0F-A43A-1B221666A4C0}.Release|x64.Build.0 = Release|x64
 		{42723229-05D7-4D0F-A43A-1B221666A4C0}.Release|x86.ActiveCfg = Release|Win32
 		{42723229-05D7-4D0F-A43A-1B221666A4C0}.Release|x86.Build.0 = Release|Win32
+		{282AD948-1992-41D2-97D0-DAC5B29641B4}.Debug|ARM64.ActiveCfg = Debug|x64
+		{282AD948-1992-41D2-97D0-DAC5B29641B4}.Debug|ARM64.Build.0 = Debug|x64
+		{282AD948-1992-41D2-97D0-DAC5B29641B4}.Debug|x64.ActiveCfg = Debug|x64
+		{282AD948-1992-41D2-97D0-DAC5B29641B4}.Debug|x64.Build.0 = Debug|x64
+		{282AD948-1992-41D2-97D0-DAC5B29641B4}.Debug|x86.ActiveCfg = Debug|Win32
+		{282AD948-1992-41D2-97D0-DAC5B29641B4}.Debug|x86.Build.0 = Debug|Win32
+		{282AD948-1992-41D2-97D0-DAC5B29641B4}.Release|ARM64.ActiveCfg = Release|x64
+		{282AD948-1992-41D2-97D0-DAC5B29641B4}.Release|ARM64.Build.0 = Release|x64
+		{282AD948-1992-41D2-97D0-DAC5B29641B4}.Release|x64.ActiveCfg = Release|x64
+		{282AD948-1992-41D2-97D0-DAC5B29641B4}.Release|x64.Build.0 = Release|x64
+		{282AD948-1992-41D2-97D0-DAC5B29641B4}.Release|x86.ActiveCfg = Release|Win32
+		{282AD948-1992-41D2-97D0-DAC5B29641B4}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

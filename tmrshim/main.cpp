@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "loader.h"
-#include "shellcode_abi.h"
+#include <shellcode_abi.h>
 
 #pragma comment(lib, "Pathcch.lib")
 
@@ -44,6 +44,7 @@ int wmain(int argc, wchar_t** argv) {
     PCWSTR entryPoint = L"tmr_entry";
     PCWSTR payloadName = NULL;
     BOOL earlybird = FALSE;
+    BOOL nocleanup = FALSE;
     PCWSTR target = NULL;
     PCWSTR shimFunc = NULL;
     PCWSTR shimArgString = NULL;
@@ -69,6 +70,9 @@ int wmain(int argc, wchar_t** argv) {
                 goto help;
             target = argv[++i];
             earlybird = TRUE;
+        }
+        else if (CompareStringOrdinal(L"--nocleanup", -1, argv[i], -1, TRUE) == CSTR_EQUAL) {
+            nocleanup = TRUE;
         }
         else if (!earlybird && !target) {
             target = argv[i];
@@ -207,7 +211,8 @@ int wmain(int argc, wchar_t** argv) {
             ._PayloadPath = (ULONG64)argMem + payloadPathOffset,
             ._ShimFunction = (ULONG64)argMem + shimFuncNameOffset,
             ._ShimFunctionArgs = (ULONG64)argMem + shimFuncArgOffset,
-            .Flags = earlybird ? SHELLCODE_FLAG_EARLYBIRD : 0U,
+            .Flags = (earlybird ? SHELLCODE_FLAG_EARLYBIRD : 0U) |
+                (nocleanup ? SHELLCODE_FLAG_NOCLEANUP : 0U),
         };
         memcpy(argBytes.data(), &realArgs, sizeof(realArgs));
 

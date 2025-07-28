@@ -5,6 +5,7 @@
 #include <Windows.h>
 
 #define SHELLCODE_FLAG_EARLYBIRD 1U
+#define SHELLCODE_FLAG_NOCLEANUP 2U
 
 typedef struct _SHELLCODE_ARGS {
     union {

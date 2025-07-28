@@ -1,5 +1,6 @@
 #include "pch.h"
-#include "shellcode_abi.h"
+#include <shellcode_abi.h>
+#include <dogwalk.h>
 
 #pragma comment(lib, "Winmm.lib")
 
@@ -20,17 +21,6 @@ BOOL APIENTRY DllMain(
     return TRUE;
 }
 
-static void tmr_cleanup(HMODULE instance, PSHELLCODE_ARGS pi, DWORD exitcode) {
-    DWORD earlybird = pi->Flags & SHELLCODE_FLAG_EARLYBIRD;
-    // if earlybird, must keep the shellcode return path alive since we still need to return from the APC
-    // this means the earlybird shellcode memory and payload dll will be leaked
-    if (!earlybird)
-        VirtualFree(pi->ShellcodeBase, 0, MEM_RELEASE);
-    VirtualFree(pi, 0, MEM_RELEASE);
-    if (!earlybird)
-        FreeLibraryAndExitThread(instance, exitcode);
-}
-
 SHIMFUNC tmr_clockres;
 DWORD __cdecl tmr_clockres(HMODULE instance, PSHELLCODE_ARGS pi) {
     TIMECAPS tc;
@@ -47,6 +37,7 @@ DWORD __cdecl tmr_clockres(HMODULE instance, PSHELLCODE_ARGS pi) {
 
 cleanup:
     tmr_cleanup(instance, pi, result);
+    return result;
 }
 
 SHIMFUNC tmr_msgbox;
@@ -54,4 +45,5 @@ DWORD __cdecl tmr_msgbox(HMODULE instance, PSHELLCODE_ARGS pi) {
     MessageBoxW(NULL, pi->ShimFunctionArgs, L"Shim", MB_OK);
 
     tmr_cleanup(instance, pi, ERROR_SUCCESS);
+    return ERROR_SUCCESS;
 }
