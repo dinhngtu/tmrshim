@@ -5,7 +5,7 @@
 #pragma comment(lib, "Pathcch.lib")
 
 static void PrintUsage(wchar_t* name) {
-    wprintf(L"Usage: %s [--dllname <dllname>] [--entrypoint <entrypoint>] <pid>|--earlybird <cmd> <func> <args>\n", name);
+    wprintf(L"Usage: %s [--dllname <dllname>] [--entrypoint <entrypoint>] [--payloadname <payloadname>] [--nocleanup] <pid>|--earlybird <cmd> <func> [<funcarg>]\n", name);
 }
 
 static std::vector<uint8_t> prepare_shellcode_args(
