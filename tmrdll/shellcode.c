@@ -7,12 +7,17 @@
 #include <intrin.h>
 #include "shellcode_abi.h"
 
+#ifdef _DEBUG
+#define TMR_DEBUGBREAK() __debugbreak()
+#else
+#define TMR_DEBUGBREAK() ((void)0)
+#endif
+
 typedef HMODULE(_Ret_maybenull_ WINAPI* LoadLibraryWFunc)(_In_ LPCWSTR lpLibFileName);
 typedef FARPROC(WINAPI* GetProcAddressFunc)(_In_ HMODULE hModule, _In_ LPCSTR lpProcName);
 typedef DWORD(_Check_return_ _Post_equals_last_error_ WINAPI* GetLastErrorFunc)(VOID);
 
 #pragma section(".shcode", read, execute)
-#pragma runtime_checks("", off)
 
 static __declspec(safebuffers, code_seg(".shcode")) __forceinline bool sc_streq(PCSTR a, PCSTR b, size_t N) {
     if (!b)
@@ -51,7 +56,7 @@ __declspec(safebuffers, code_seg(".shcode"), noinline) DWORD WINAPI tmr_entry(_I
     CHAR sGetLastError[] = { 'G', 'e', 't', 'L', 'a', 's', 't', 'E', 'r', 'r', 'o', 'r', 0 };
 
     if (!arg) {
-        __debugbreak();
+        TMR_DEBUGBREAK();
         return ERROR_INVALID_PARAMETER;
     }
 
@@ -71,7 +76,7 @@ __declspec(safebuffers, code_seg(".shcode"), noinline) DWORD WINAPI tmr_entry(_I
             break;
     }
     if (!k32Base || ((PIMAGE_DOS_HEADER)k32Base)->e_magic != IMAGE_DOS_SIGNATURE) {
-        __debugbreak();
+        TMR_DEBUGBREAK();
         return ERROR_INVALID_FUNCTION;
     }
 
@@ -105,18 +110,18 @@ __declspec(safebuffers, code_seg(".shcode"), noinline) DWORD WINAPI tmr_entry(_I
     }
 
     if (!fLoadLibraryW || !fGetProcAddress || !fGetLastError) {
-        __debugbreak();
+        TMR_DEBUGBREAK();
         return ERROR_INVALID_FUNCTION;
     }
 
     HMODULE shimDll = fLoadLibraryW(parg->PayloadPath);
     if (!shimDll) {
-        __debugbreak();
+        TMR_DEBUGBREAK();
         return fGetLastError();
     }
     PSHIMFUNC fShimFunc = (PSHIMFUNC)fGetProcAddress(shimDll, parg->ShimFunction);
     if (!fShimFunc) {
-        __debugbreak();
+        TMR_DEBUGBREAK();
         return fGetLastError();
     }
     return fShimFunc(shimDll, parg);
