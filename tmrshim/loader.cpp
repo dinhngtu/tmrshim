@@ -42,23 +42,28 @@ std::span<const uint8_t> get_shellcode(_In_ HMODULE hModule, _In_ PCSTR entryPoi
 
     PIMAGE_NT_HEADERS32 _ntHdr = (PIMAGE_NT_HEADERS32)(base + ((PIMAGE_DOS_HEADER)base)->e_lfanew);
 
-    PIMAGE_DATA_DIRECTORY dirExport;
+    PIMAGE_DATA_DIRECTORY dirExport, dirReloc;
     PIMAGE_SECTION_HEADER sectionTable;
     switch (_ntHdr->FileHeader.Machine) {
     case IMAGE_FILE_MACHINE_I386: {
         dirExport = &(((PIMAGE_NT_HEADERS32)_ntHdr)->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT]);
+        dirReloc = &(((PIMAGE_NT_HEADERS32)_ntHdr)->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC]);
         sectionTable = (PIMAGE_SECTION_HEADER)(((PIMAGE_NT_HEADERS32)_ntHdr) + 1);
         break;
     }
     case IMAGE_FILE_MACHINE_AMD64:
     case IMAGE_FILE_MACHINE_ARM64: {
         dirExport = &(((PIMAGE_NT_HEADERS64)_ntHdr)->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT]);
+        dirReloc = &(((PIMAGE_NT_HEADERS64)_ntHdr)->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC]);
         sectionTable = (PIMAGE_SECTION_HEADER)(((PIMAGE_NT_HEADERS64)_ntHdr) + 1);
         break;
     }
     default:
         throw std::invalid_argument("unknown dll arch");
     }
+
+    if (dirReloc->VirtualAddress)
+        throw std::invalid_argument("unexpected relocation section in dll");
 
     PIMAGE_EXPORT_DIRECTORY exports = (PIMAGE_EXPORT_DIRECTORY)(base + dirExport->VirtualAddress);
     PDWORD nameTable = (PDWORD)(base + exports->AddressOfNames);
