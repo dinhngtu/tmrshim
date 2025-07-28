@@ -20,11 +20,9 @@
       <ControlFlowGuard>false</ControlFlowGuard>
       <SDLCheck>false</SDLCheck>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>tmrdll.def</ModuleDefinitionFile>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <CETCompat>false</CETCompat>
       <NoEntryPoint>true</NoEntryPoint>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
