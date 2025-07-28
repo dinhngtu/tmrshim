@@ -176,7 +176,7 @@
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="dllmain.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="tmrpayload.def" />

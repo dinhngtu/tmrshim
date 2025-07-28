@@ -172,6 +172,7 @@ int wmain(int argc, wchar_t** argv) {
         THROW_LAST_ERROR_IF_NULL_MSG(argMem, "error allocating remote memory");
 
         SHELLCODE_ARGS realArgs = {
+            ._ShellcodeBase = (ULONG64)shellcodeMem,
             ._PayloadPath = (ULONG64)argMem + payloadPathOffset,
             ._ShimFunction = (ULONG64)argMem + shimFuncNameOffset,
             ._ShimFunctionArgs = (ULONG64)argMem + shimFuncArgOffset,

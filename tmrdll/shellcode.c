@@ -10,7 +10,6 @@
 typedef HMODULE(_Ret_maybenull_ WINAPI* LoadLibraryWFunc)(_In_ LPCWSTR lpLibFileName);
 typedef FARPROC(WINAPI* GetProcAddressFunc)(_In_ HMODULE hModule, _In_ LPCSTR lpProcName);
 typedef DWORD(_Check_return_ _Post_equals_last_error_ WINAPI* GetLastErrorFunc)(VOID);
-typedef DWORD(__cdecl* ShimFunc)(PSHELLCODE_ARGS pi);
 
 #pragma section(".shcode", read, execute)
 #pragma runtime_checks("", off)
@@ -115,10 +114,10 @@ __declspec(safebuffers, code_seg(".shcode"), noinline) DWORD WINAPI tmr_entry(_I
         __debugbreak();
         return fGetLastError();
     }
-    ShimFunc fShimFunc = (ShimFunc)fGetProcAddress(shimDll, parg->ShimFunction);
+    PSHIMFUNC fShimFunc = (PSHIMFUNC)fGetProcAddress(shimDll, parg->ShimFunction);
     if (!fShimFunc) {
         __debugbreak();
         return fGetLastError();
     }
-    return fShimFunc(parg);
+    return fShimFunc(shimDll, parg);
 }
