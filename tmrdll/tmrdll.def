@@ -1,6 +1,4 @@
 LIBRARY
 
 EXPORTS
-    shellcode
-    ShimIncreaseTimerFrequency
-    ShimMsgBox
+    tmr_entry

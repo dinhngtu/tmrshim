@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <intrin.h>
 #include "shellcode_abi.h"
 
 typedef HMODULE(_Ret_maybenull_ WINAPI* LoadLibraryWFunc)(_In_ LPCWSTR lpLibFileName);
@@ -17,7 +18,6 @@ typedef DWORD(__cdecl* ShimFunc)(PSHELLCODE_ARGS pi);
 static __declspec(safebuffers, code_seg(".shcode")) __forceinline bool sc_streq(PCSTR a, PCSTR b, size_t N) {
     if (!b)
         return false;
-    bool flag = true;
     for (size_t i = 0; i < N; i++)
         if (a[i] != b[i])
             return false;
@@ -27,7 +27,6 @@ static __declspec(safebuffers, code_seg(".shcode")) __forceinline bool sc_streq(
 static __declspec(safebuffers, code_seg(".shcode")) __forceinline bool sc_strcaseeqW(PCWSTR a, PCWSTR b, size_t N) {
     if (!b)
         return false;
-    bool flag = true;
     for (size_t i = 0; i < N; i++)
         if ((a[i] | 32) != (b[i] | 32))
             return false;
@@ -46,14 +45,16 @@ static __declspec(safebuffers, code_seg(".shcode")) __forceinline PPEB getpeb() 
 #endif
 }
 
-__declspec(safebuffers, code_seg(".shcode"), noinline) DWORD WINAPI shellcode(_In_ LPVOID arg) {
-    wchar_t sKernel32Dll[] = { L'k', L'e', L'r', L'n', L'e', L'l', L'3', L'2', L'.', L'd', L'l', L'l', 0 };
-    char sLoadLibraryW[] = { 'L', 'o', 'a', 'd', 'L', 'i', 'b', 'r', 'a', 'r', 'y', 'W', 0 };
-    char sGetProcAddress[] = { 'G', 'e', 't', 'P', 'r', 'o', 'c', 'A', 'd', 'd', 'r', 'e', 's', 's', 0 };
-    char sGetLastError[] = { 'G', 'e', 't', 'L', 'a', 's', 't', 'E', 'r', 'r', 'o', 'r', 0 };
+__declspec(safebuffers, code_seg(".shcode"), noinline) DWORD WINAPI tmr_entry(_In_ LPVOID arg) {
+    WCHAR sKernel32Dll[] = { L'k', L'e', L'r', L'n', L'e', L'l', L'3', L'2', L'.', L'd', L'l', L'l', 0 };
+    CHAR sLoadLibraryW[] = { 'L', 'o', 'a', 'd', 'L', 'i', 'b', 'r', 'a', 'r', 'y', 'W', 0 };
+    CHAR sGetProcAddress[] = { 'G', 'e', 't', 'P', 'r', 'o', 'c', 'A', 'd', 'd', 'r', 'e', 's', 's', 0 };
+    CHAR sGetLastError[] = { 'G', 'e', 't', 'L', 'a', 's', 't', 'E', 'r', 'r', 'o', 'r', 0 };
 
-    if (!arg)
+    if (!arg) {
+        __debugbreak();
         return ERROR_INVALID_PARAMETER;
+    }
 
     PSHELLCODE_ARGS parg = (PSHELLCODE_ARGS)arg;
     PPEB ppeb = getpeb();
@@ -63,15 +64,17 @@ __declspec(safebuffers, code_seg(".shcode"), noinline) DWORD WINAPI shellcode(_I
     while (link) {
         PLDR_DATA_TABLE_ENTRY entry = (PLDR_DATA_TABLE_ENTRY)CONTAINING_RECORD(link, LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks);
         if (sc_strcaseeqW(sKernel32Dll, (&entry->FullDllName)[1].Buffer, ARRAYSIZE(sKernel32Dll))) {
-            k32Base = (uint8_t*)entry->DllBase;
+            k32Base = (PCHAR)entry->DllBase;
             break;
         }
         link = link->Flink;
         if (link == ppeb->Ldr->InMemoryOrderModuleList.Flink)
             break;
     }
-    if (!k32Base || ((PIMAGE_DOS_HEADER)k32Base)->e_magic != IMAGE_DOS_SIGNATURE)
+    if (!k32Base || ((PIMAGE_DOS_HEADER)k32Base)->e_magic != IMAGE_DOS_SIGNATURE) {
+        __debugbreak();
         return ERROR_INVALID_FUNCTION;
+    }
 
     LoadLibraryWFunc fLoadLibraryW = NULL;
     GetProcAddressFunc fGetProcAddress = NULL;
@@ -102,14 +105,20 @@ __declspec(safebuffers, code_seg(".shcode"), noinline) DWORD WINAPI shellcode(_I
         }
     }
 
-    if (!fLoadLibraryW || !fGetProcAddress || !fGetLastError)
+    if (!fLoadLibraryW || !fGetProcAddress || !fGetLastError) {
+        __debugbreak();
         return ERROR_INVALID_FUNCTION;
+    }
 
-    HMODULE shimDll = fLoadLibraryW(parg->DllPath);
-    if (!shimDll)
+    HMODULE shimDll = fLoadLibraryW(parg->PayloadPath);
+    if (!shimDll) {
+        __debugbreak();
         return fGetLastError();
+    }
     ShimFunc fShimFunc = (ShimFunc)fGetProcAddress(shimDll, parg->ShimFunction);
-    if (!fShimFunc)
+    if (!fShimFunc) {
+        __debugbreak();
         return fGetLastError();
+    }
     return fShimFunc(parg);
 }

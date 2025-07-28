@@ -7,6 +7,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tmrshim", "tmrshim\tmrshim.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tmrdll", "tmrdll\tmrdll.vcxproj", "{A281CEB1-0B41-4B35-969A-D74A97647A39}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tmrpayload", "tmrpayload\tmrpayload.vcxproj", "{42723229-05D7-4D0F-A43A-1B221666A4C0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "include", "include", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+	ProjectSection(SolutionItems) = preProject
+		include\shellcode_abi.h = include\shellcode_abi.h
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM64 = Debug|ARM64
@@ -41,6 +48,18 @@ Global
 		{A281CEB1-0B41-4B35-969A-D74A97647A39}.Release|x64.Build.0 = Release|x64
 		{A281CEB1-0B41-4B35-969A-D74A97647A39}.Release|x86.ActiveCfg = Release|Win32
 		{A281CEB1-0B41-4B35-969A-D74A97647A39}.Release|x86.Build.0 = Release|Win32
+		{42723229-05D7-4D0F-A43A-1B221666A4C0}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{42723229-05D7-4D0F-A43A-1B221666A4C0}.Debug|ARM64.Build.0 = Debug|ARM64
+		{42723229-05D7-4D0F-A43A-1B221666A4C0}.Debug|x64.ActiveCfg = Debug|x64
+		{42723229-05D7-4D0F-A43A-1B221666A4C0}.Debug|x64.Build.0 = Debug|x64
+		{42723229-05D7-4D0F-A43A-1B221666A4C0}.Debug|x86.ActiveCfg = Debug|Win32
+		{42723229-05D7-4D0F-A43A-1B221666A4C0}.Debug|x86.Build.0 = Debug|Win32
+		{42723229-05D7-4D0F-A43A-1B221666A4C0}.Release|ARM64.ActiveCfg = Release|ARM64
+		{42723229-05D7-4D0F-A43A-1B221666A4C0}.Release|ARM64.Build.0 = Release|ARM64
+		{42723229-05D7-4D0F-A43A-1B221666A4C0}.Release|x64.ActiveCfg = Release|x64
+		{42723229-05D7-4D0F-A43A-1B221666A4C0}.Release|x64.Build.0 = Release|x64
+		{42723229-05D7-4D0F-A43A-1B221666A4C0}.Release|x86.ActiveCfg = Release|Win32
+		{42723229-05D7-4D0F-A43A-1B221666A4C0}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

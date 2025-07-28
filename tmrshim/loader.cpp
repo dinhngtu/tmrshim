@@ -3,19 +3,15 @@
 
 #pragma comment(lib, "Pathcch.lib")
 
-wil::unique_hmodule load_dll(_In_ HANDLE hProcess, _In_opt_ PCWSTR _dllName, _Out_ wil::unique_hlocal_string& dllPath, _Out_ PUSHORT targetMachine) {
+wil::unique_hmodule load_dll(_In_ HANDLE hProcess, _In_opt_ PCWSTR dllName, _Out_ PUSHORT targetMachine) {
     USHORT processMachine, nativeMachine;
 
     if (!IsWow64Process2(hProcess, &processMachine, &nativeMachine))
         throw std::system_error(GetLastError(), std::system_category(), "error reading process arch");
 
-    std::wstring dllName;
     if (processMachine == IMAGE_FILE_MACHINE_UNKNOWN)
         processMachine = nativeMachine;
-    if (_dllName) {
-        dllPath = wil::make_hlocal_string(_dllName);
-    }
-    else {
+    if (!dllName) {
         switch (processMachine) {
         case IMAGE_FILE_MACHINE_I386:
             dllName = L"tmrdll.x86.dll";
@@ -29,22 +25,13 @@ wil::unique_hmodule load_dll(_In_ HANDLE hProcess, _In_opt_ PCWSTR _dllName, _Ou
         default:
             throw std::invalid_argument("unsupported machine");
         }
-
-        auto exePath = wil::GetModuleFileNameW();
-        size_t parentLen;
-        if (!wil::try_get_parent_path_range(exePath.get(), &parentLen))
-            throw std::runtime_error("cannot get app dir path");
-        std::wstring parentPath(exePath.get(), exePath.get() + parentLen);
-        PWSTR _dllPath;
-        THROW_IF_FAILED(PathAllocCombine(parentPath.c_str(), dllName.c_str(), PATHCCH_NONE, &_dllPath));
-        dllPath = wil::unique_hlocal_string(_dllPath);
     }
 
     auto hModule = LoadLibraryExW(
-        dllPath.get(),
+        dllName,
         NULL,
-        LOAD_LIBRARY_AS_IMAGE_RESOURCE | LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE);
-    THROW_LAST_ERROR_IF_NULL_MSG(hModule, "error loading target dll '%s'", dllName.c_str());
+        LOAD_LIBRARY_AS_IMAGE_RESOURCE | LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE | LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
+    THROW_LAST_ERROR_IF_NULL_MSG(hModule, "error loading target dll '%s'", dllName);
     *targetMachine = processMachine;
     return wil::unique_hmodule(hModule);
 }

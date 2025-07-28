@@ -6,8 +6,8 @@
 
 typedef struct _SHELLCODE_ARGS {
     union {
-        PCWSTR DllPath;
-        ULONG64 _DllPath;
+        PCWSTR PayloadPath;
+        ULONG64 _PayloadPath;
     };
     union {
         PCSTR ShimFunction;

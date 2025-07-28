@@ -1,24 +1,24 @@
 #include "pch.h"
 #include "loader.h"
-#include "..\tmrdll\shellcode_abi.h"
+#include "shellcode_abi.h"
 
 static void PrintUsage(wchar_t* name) {
     wprintf(L"Usage: %s [--dllname <dllname>] [--entrypoint <entrypoint>] <pid> <func> <args>\n", name);
 }
 
 static std::vector<uint8_t> prepare_shellcode_args(
-    PCWSTR dllPath,
+    PCWSTR payloadPath,
     PCSTR shimFuncAscii,
     PCWSTR shimFuncArg,
-    _Out_opt_ ULONG64* dllPathOffset = NULL,
+    _Out_opt_ ULONG64* payloadPathOffset = NULL,
     _Out_opt_ ULONG64* shimFuncNameOffset = NULL,
     _Out_opt_ ULONG64* shimFuncArgOffset = NULL) {
     std::vector<uint8_t> argBytes(sizeof(SHELLCODE_ARGS));
 
-    if (dllPathOffset)
-        *dllPathOffset = argBytes.size();
+    if (payloadPathOffset)
+        *payloadPathOffset = argBytes.size();
 
-    argBytes.insert(argBytes.end(), (uint8_t*)dllPath, (uint8_t*)dllPath + (wcslen(dllPath) + 1) * sizeof(WCHAR));
+    argBytes.insert(argBytes.end(), (uint8_t*)payloadPath, (uint8_t*)payloadPath + (wcslen(payloadPath) + 1) * sizeof(WCHAR));
 
     if (shimFuncNameOffset)
         *shimFuncNameOffset = argBytes.size();
@@ -38,9 +38,10 @@ static std::vector<uint8_t> prepare_shellcode_args(
 }
 
 int wmain(int argc, wchar_t** argv) {
-    PCWSTR pid = NULL;
     PCWSTR dllName = NULL;
-    PCWSTR entryPoint = L"shellcode";
+    PCWSTR entryPoint = L"tmr_entry";
+    PCWSTR payloadName = NULL;
+    PCWSTR pidString = NULL;
     PCWSTR shimFunc = NULL;
     PCWSTR shimArgString = NULL;
 
@@ -55,8 +56,13 @@ int wmain(int argc, wchar_t** argv) {
                 goto help;
             entryPoint = argv[++i];
         }
-        else if (!pid) {
-            pid = argv[i];
+        if (CompareStringOrdinal(L"--payloadname", -1, argv[i], -1, TRUE) == CSTR_EQUAL) {
+            if (i >= argc - 1)
+                goto help;
+            payloadName = argv[++i];
+        }
+        else if (!pidString) {
+            pidString = argv[i];
         }
         else if (!shimFunc) {
             shimFunc = argv[i];
@@ -68,7 +74,7 @@ int wmain(int argc, wchar_t** argv) {
             goto help;
         }
     }
-    if (!pid || !shimFunc)
+    if (!pidString || !shimFunc)
         goto help;
     if (!shimArgString)
         shimArgString = L"";
@@ -78,7 +84,7 @@ int wmain(int argc, wchar_t** argv) {
             throw std::invalid_argument("command line error");
 
         errno = 0;
-        DWORD pid = wcstoul(argv[1], NULL, 0);
+        DWORD pid = wcstoul(pidString, NULL, 0);
         if (errno)
             throw std::system_error(errno, std::generic_category(), "error parsing PID");
 
@@ -89,8 +95,36 @@ int wmain(int argc, wchar_t** argv) {
         THROW_LAST_ERROR_IF_NULL_MSG(hProcess, "error opening process %lu", pid);
 
         USHORT targetMachine;
-        wil::unique_hlocal_string dllPath;
-        auto dll = load_dll(hProcess, dllName, dllPath, &targetMachine);
+        auto dll = load_dll(hProcess, dllName, &targetMachine);
+
+        wil::unique_hlocal_string payloadPath;
+        if (payloadName) {
+            payloadPath = wil::make_hlocal_string(payloadName);
+        }
+        else {
+            switch (targetMachine) {
+            case IMAGE_FILE_MACHINE_I386:
+                payloadName = L"tmrpayload.x86.dll";
+                break;
+            case IMAGE_FILE_MACHINE_AMD64:
+                payloadName = L"tmrpayload.x64.dll";
+                break;
+            case IMAGE_FILE_MACHINE_ARM64:
+                payloadName = L"tmrpayload.ARM64.dll";
+                break;
+            default:
+                throw std::invalid_argument("unsupported machine");
+            }
+
+            auto exePath = wil::GetModuleFileNameW();
+            size_t parentLen;
+            if (!wil::try_get_parent_path_range(exePath.get(), &parentLen))
+                throw std::runtime_error("cannot get app dir path");
+            std::wstring parentPath(exePath.get(), exePath.get() + parentLen);
+            PWSTR _payloadPath;
+            THROW_IF_FAILED(PathAllocCombine(parentPath.c_str(), payloadName, PATHCCH_NONE, &_payloadPath));
+            payloadPath = wil::unique_hlocal_string(_payloadPath);
+        }
 
         std::wstring entryPointWide(entryPoint);
         std::string entryPointAscii(entryPointWide.begin(), entryPointWide.end());
@@ -120,12 +154,12 @@ int wmain(int argc, wchar_t** argv) {
         std::wstring shimFuncWide(shimFunc);
         std::string shimFuncAscii(shimFuncWide.begin(), shimFuncWide.end());
 
-        ULONG64 dllPathOffset, shimFuncNameOffset, shimFuncArgOffset;
+        ULONG64 payloadPathOffset, shimFuncNameOffset, shimFuncArgOffset;
         std::vector<uint8_t> argBytes = prepare_shellcode_args(
-            dllPath.get(),
+            payloadPath.get(),
             shimFuncAscii.c_str(),
             shimArgString,
-            &dllPathOffset,
+            &payloadPathOffset,
             &shimFuncNameOffset,
             &shimFuncArgOffset);
 
@@ -135,10 +169,10 @@ int wmain(int argc, wchar_t** argv) {
             argBytes.size(),
             MEM_COMMIT,
             PAGE_EXECUTE_READ);
-        THROW_LAST_ERROR_IF_NULL_MSG(shellcodeMem, "error allocating remote memory");
+        THROW_LAST_ERROR_IF_NULL_MSG(argMem, "error allocating remote memory");
 
         SHELLCODE_ARGS realArgs = {
-            ._DllPath = (ULONG64)argMem + dllPathOffset,
+            ._PayloadPath = (ULONG64)argMem + payloadPathOffset,
             ._ShimFunction = (ULONG64)argMem + shimFuncNameOffset,
             ._ShimFunctionArgs = (ULONG64)argMem + shimFuncArgOffset,
         };

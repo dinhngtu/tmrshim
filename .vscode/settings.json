@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "*.h": "c",
+        "*.dsl": "EASL",
+        ".clang-tidy": "yaml",
+        "chrono": "cpp",
+        "system_error": "cpp",
+        "xlocale": "cpp"
+    }
+}
