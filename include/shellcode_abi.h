@@ -4,6 +4,8 @@
 #define NOMINMAX
 #include <Windows.h>
 
+#define SHELLCODE_FLAG_EARLYBIRD 1U
+
 typedef struct _SHELLCODE_ARGS {
     union {
         PVOID ShellcodeBase;
@@ -21,6 +23,7 @@ typedef struct _SHELLCODE_ARGS {
         PCWSTR ShimFunctionArgs;
         ULONG64 _ShimFunctionArgs;
     };
+    DWORD Flags;
 } SHELLCODE_ARGS, * PSHELLCODE_ARGS;
 
 typedef DWORD(__cdecl SHIMFUNC)(HMODULE instance, PSHELLCODE_ARGS pi);

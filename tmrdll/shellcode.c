@@ -19,7 +19,7 @@ typedef DWORD(_Check_return_ _Post_equals_last_error_ WINAPI* GetLastErrorFunc)(
 
 #pragma section(".shcode", read, execute)
 
-static __declspec(safebuffers, code_seg(".shcode")) __forceinline bool sc_streq(PCSTR a, PCSTR b, size_t N) {
+static __declspec(code_seg(".shcode")) __forceinline bool sc_streq(PCSTR a, PCSTR b, size_t N) {
     if (!b)
         return false;
     for (size_t i = 0; i < N; i++)
@@ -28,7 +28,7 @@ static __declspec(safebuffers, code_seg(".shcode")) __forceinline bool sc_streq(
     return true;
 }
 
-static __declspec(safebuffers, code_seg(".shcode")) __forceinline bool sc_strcaseeqW(PCWSTR a, PCWSTR b, size_t N) {
+static __declspec(code_seg(".shcode")) __forceinline bool sc_strcaseeqW(PCWSTR a, PCWSTR b, size_t N) {
     if (!b)
         return false;
     for (size_t i = 0; i < N; i++)
@@ -37,7 +37,7 @@ static __declspec(safebuffers, code_seg(".shcode")) __forceinline bool sc_strcas
     return true;
 }
 
-static __declspec(safebuffers, code_seg(".shcode")) __forceinline PPEB getpeb() {
+static __declspec(code_seg(".shcode")) __forceinline PPEB getpeb() {
 #if defined(_M_X64)
     return (PPEB)(__readgsqword(offsetof(TEB, ProcessEnvironmentBlock)));
 #elif defined(_M_IX86)
@@ -49,7 +49,7 @@ static __declspec(safebuffers, code_seg(".shcode")) __forceinline PPEB getpeb() 
 #endif
 }
 
-__declspec(safebuffers, code_seg(".shcode"), noinline) DWORD WINAPI tmr_entry(_In_ LPVOID arg) {
+__declspec(code_seg(".shcode")) DWORD WINAPI tmr_entry(_In_ LPVOID arg) {
     WCHAR sKernel32Dll[] = { L'k', L'e', L'r', L'n', L'e', L'l', L'3', L'2', L'.', L'd', L'l', L'l', 0 };
     CHAR sLoadLibraryW[] = { 'L', 'o', 'a', 'd', 'L', 'i', 'b', 'r', 'a', 'r', 'y', 'W', 0 };
     CHAR sGetProcAddress[] = { 'G', 'e', 't', 'P', 'r', 'o', 'c', 'A', 'd', 'd', 'r', 'e', 's', 's', 0 };
@@ -125,4 +125,8 @@ __declspec(safebuffers, code_seg(".shcode"), noinline) DWORD WINAPI tmr_entry(_I
         return fGetLastError();
     }
     return fShimFunc(shimDll, parg);
+}
+
+__declspec(code_seg(".shcode")) VOID NTAPI tmr_entry_apc(_In_ ULONG_PTR arg) {
+    tmr_entry((LPVOID)arg);
 }

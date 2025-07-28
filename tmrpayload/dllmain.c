@@ -20,10 +20,15 @@ BOOL APIENTRY DllMain(
     return TRUE;
 }
 
-static void DECLSPEC_NORETURN tmr_cleanup(HMODULE instance, PSHELLCODE_ARGS pi, DWORD exitcode) {
-    VirtualFree(pi->ShellcodeBase, 0, MEM_RELEASE);
+static void tmr_cleanup(HMODULE instance, PSHELLCODE_ARGS pi, DWORD exitcode) {
+    DWORD earlybird = pi->Flags & SHELLCODE_FLAG_EARLYBIRD;
+    // if earlybird, must keep the shellcode return path alive since we still need to return from the APC
+    // this means the earlybird shellcode memory and payload dll will be leaked
+    if (!earlybird)
+        VirtualFree(pi->ShellcodeBase, 0, MEM_RELEASE);
     VirtualFree(pi, 0, MEM_RELEASE);
-    FreeLibraryAndExitThread(instance, exitcode);
+    if (!earlybird)
+        FreeLibraryAndExitThread(instance, exitcode);
 }
 
 SHIMFUNC tmr_clockres;

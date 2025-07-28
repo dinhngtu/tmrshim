@@ -5,7 +5,7 @@
 #pragma comment(lib, "Pathcch.lib")
 
 static void PrintUsage(wchar_t* name) {
-    wprintf(L"Usage: %s [--dllname <dllname>] [--entrypoint <entrypoint>] <pid> <func> <args>\n", name);
+    wprintf(L"Usage: %s [--dllname <dllname>] [--entrypoint <entrypoint>] <pid>|--earlybird <cmd> <func> <args>\n", name);
 }
 
 static std::vector<uint8_t> prepare_shellcode_args(
@@ -43,7 +43,8 @@ int wmain(int argc, wchar_t** argv) {
     PCWSTR dllName = NULL;
     PCWSTR entryPoint = L"tmr_entry";
     PCWSTR payloadName = NULL;
-    PCWSTR pidString = NULL;
+    BOOL earlybird = FALSE;
+    PCWSTR target = NULL;
     PCWSTR shimFunc = NULL;
     PCWSTR shimArgString = NULL;
 
@@ -58,13 +59,19 @@ int wmain(int argc, wchar_t** argv) {
                 goto help;
             entryPoint = argv[++i];
         }
-        if (CompareStringOrdinal(L"--payloadname", -1, argv[i], -1, TRUE) == CSTR_EQUAL) {
+        else if (CompareStringOrdinal(L"--payloadname", -1, argv[i], -1, TRUE) == CSTR_EQUAL) {
             if (i >= argc - 1)
                 goto help;
             payloadName = argv[++i];
         }
-        else if (!pidString) {
-            pidString = argv[i];
+        else if (CompareStringOrdinal(L"--earlybird", -1, argv[i], -1, TRUE) == CSTR_EQUAL) {
+            if (i >= argc - 1)
+                goto help;
+            target = argv[++i];
+            earlybird = TRUE;
+        }
+        else if (!earlybird && !target) {
+            target = argv[i];
         }
         else if (!shimFunc) {
             shimFunc = argv[i];
@@ -76,7 +83,7 @@ int wmain(int argc, wchar_t** argv) {
             goto help;
         }
     }
-    if (!pidString || !shimFunc)
+    if (!target || !shimFunc)
         goto help;
     if (!shimArgString)
         shimArgString = L"";
@@ -86,15 +93,37 @@ int wmain(int argc, wchar_t** argv) {
             throw std::invalid_argument("command line error");
 
         errno = 0;
-        DWORD pid = wcstoul(pidString, NULL, 0);
+        DWORD pid = wcstoul(target, NULL, 0);
         if (errno)
             throw std::system_error(errno, std::generic_category(), "error parsing PID");
 
-        auto hProcess = OpenProcess(
-            PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ,
-            FALSE,
-            pid);
-        THROW_LAST_ERROR_IF_NULL_MSG(hProcess, "error opening process %lu", pid);
+        HANDLE hProcess;
+        wil::unique_process_information pi; // earlybird
+        if (earlybird) {
+            std::wstring cmdline(target);
+            STARTUPINFOW si{ sizeof(si) };
+            THROW_IF_WIN32_BOOL_FALSE_MSG(
+                CreateProcessW(
+                    NULL,
+                    cmdline.data(),
+                    NULL,
+                    NULL,
+                    FALSE,
+                    CREATE_SUSPENDED,
+                    NULL,
+                    NULL,
+                    &si,
+                    &pi),
+                "can't create child process");
+            hProcess = pi.hProcess;
+        }
+        else {
+            hProcess = OpenProcess(
+                PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ,
+                FALSE,
+                pid);
+            THROW_LAST_ERROR_IF_NULL_MSG(hProcess, "error opening process %lu", pid);
+        }
 
         USHORT targetMachine;
         auto dll = load_dll(hProcess, dllName, &targetMachine);
@@ -178,6 +207,7 @@ int wmain(int argc, wchar_t** argv) {
             ._PayloadPath = (ULONG64)argMem + payloadPathOffset,
             ._ShimFunction = (ULONG64)argMem + shimFuncNameOffset,
             ._ShimFunctionArgs = (ULONG64)argMem + shimFuncArgOffset,
+            .Flags = earlybird ? SHELLCODE_FLAG_EARLYBIRD : 0U,
         };
         memcpy(argBytes.data(), &realArgs, sizeof(realArgs));
 
@@ -192,16 +222,27 @@ int wmain(int argc, wchar_t** argv) {
         if (written != argBytes.size())
             throw std::runtime_error("WriteProcessMemory didn't write enough data (args)");
 
-        THROW_LAST_ERROR_IF_NULL_MSG(
-            CreateRemoteThread(
-                hProcess,
-                NULL,
-                0,
-                (LPTHREAD_START_ROUTINE)((ULONG_PTR)shellcodeMem + entryOffset),
-                argMem,
-                0,
-                NULL),
-            "error starting remote thread");
+        if (earlybird) {
+            THROW_LAST_ERROR_IF_MSG(
+                !QueueUserAPC(
+                    (PAPCFUNC)((ULONG_PTR)shellcodeMem + entryOffset),
+                    pi.hThread,
+                    (ULONG_PTR)argMem),
+                "error queuing APC");
+            ResumeThread(pi.hThread);
+        }
+        else {
+            THROW_LAST_ERROR_IF_NULL_MSG(
+                CreateRemoteThread(
+                    hProcess,
+                    NULL,
+                    0,
+                    (LPTHREAD_START_ROUTINE)((ULONG_PTR)shellcodeMem + entryOffset),
+                    argMem,
+                    0,
+                    NULL),
+                "error starting remote thread");
+        }
 
         return 0;
     }
