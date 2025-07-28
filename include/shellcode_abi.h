@@ -11,7 +11,7 @@
     union { \
         type name; \
         ULONG64 _##name; \
-    };
+    }
 
 typedef struct _SHELLCODE_ARGS {
     SHELLCODE_PTR(PVOID, ShellcodeBase);
