@@ -2,6 +2,8 @@
 #include "loader.h"
 #include "shellcode_abi.h"
 
+#pragma comment(lib, "Pathcch.lib")
+
 static void PrintUsage(wchar_t* name) {
     wprintf(L"Usage: %s [--dllname <dllname>] [--entrypoint <entrypoint>] <pid> <func> <args>\n", name);
 }
@@ -168,7 +170,7 @@ int wmain(int argc, wchar_t** argv) {
             NULL,
             argBytes.size(),
             MEM_COMMIT,
-            PAGE_EXECUTE_READ);
+            PAGE_READWRITE);
         THROW_LAST_ERROR_IF_NULL_MSG(argMem, "error allocating remote memory");
 
         SHELLCODE_ARGS realArgs = {

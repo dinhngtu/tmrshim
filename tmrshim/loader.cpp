@@ -1,8 +1,6 @@
 #include "pch.h"
 #include <intrin.h>
 
-#pragma comment(lib, "Pathcch.lib")
-
 wil::unique_hmodule load_dll(_In_ HANDLE hProcess, _In_opt_ PCWSTR dllName, _Out_ PUSHORT targetMachine) {
     USHORT processMachine, nativeMachine;
 
