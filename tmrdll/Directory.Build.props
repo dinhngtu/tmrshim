@@ -26,6 +26,7 @@
       <ModuleDefinitionFile>tmrdll.def</ModuleDefinitionFile>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <CETCompat>false</CETCompat>
+      <NoEntryPoint>true</NoEntryPoint>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <AdditionalOptions></AdditionalOptions>
     </Link>
