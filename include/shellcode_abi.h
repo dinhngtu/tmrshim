@@ -7,23 +7,17 @@
 #define SHELLCODE_FLAG_EARLYBIRD 1U
 #define SHELLCODE_FLAG_NOCLEANUP 2U
 
+#define SHELLCODE_PTR(type, name) \
+    union { \
+        type name; \
+        ULONG64 _##name; \
+    };
+
 typedef struct _SHELLCODE_ARGS {
-    union {
-        PVOID ShellcodeBase;
-        ULONG64 _ShellcodeBase;
-    };
-    union {
-        PCWSTR PayloadPath;
-        ULONG64 _PayloadPath;
-    };
-    union {
-        PCSTR ShimFunction;
-        ULONG64 _ShimFunction;
-    };
-    union {
-        PCWSTR ShimFunctionArgs;
-        ULONG64 _ShimFunctionArgs;
-    };
+    SHELLCODE_PTR(PVOID, ShellcodeBase);
+    SHELLCODE_PTR(PCWSTR, PayloadPath);
+    SHELLCODE_PTR(PCSTR, ShimFunction);
+    SHELLCODE_PTR(PCWSTR, ShimFunctionArgs);
     DWORD Flags;
 } SHELLCODE_ARGS, * PSHELLCODE_ARGS;
 
