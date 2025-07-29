@@ -60,7 +60,7 @@ std::span<const uint8_t> get_shellcode(_In_ HMODULE hModule, _In_ PCSTR entryPoi
         throw std::invalid_argument("unknown dll arch");
     }
 
-    if (dirReloc->VirtualAddress)
+    if (dirReloc->VirtualAddress || dirReloc->Size)
         throw std::invalid_argument("unexpected relocation section in dll");
 
     PIMAGE_EXPORT_DIRECTORY exports = (PIMAGE_EXPORT_DIRECTORY)(base + dirExport->VirtualAddress);
