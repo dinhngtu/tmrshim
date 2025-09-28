@@ -5,7 +5,15 @@
 #pragma comment(lib, "Pathcch.lib")
 
 static void PrintUsage(wchar_t* name) {
-    wprintf(L"Usage: %s [--dllname <dllname>] [--entrypoint <entrypoint>] [--payloadname <payloadname>] [--nocleanup] <pid>|--earlybird <cmd> <func> [<funcarg>]\n", name);
+    wprintf(
+        L"Usage: %s "
+        "[--dllname <dllname>] "
+        "[--entrypoint <entrypoint>] "
+        "[--entrypoint-early <entrypoint_early>] "
+        "[--payloadname <payloadname>] "
+        "[--nocleanup] "
+        "<pid>|--earlybird <cmd> "
+        "<func> [<funcarg>]\n", name);
 }
 
 static std::vector<uint8_t> prepare_shellcode_args(
@@ -41,7 +49,8 @@ static std::vector<uint8_t> prepare_shellcode_args(
 
 int wmain(int argc, wchar_t** argv) {
     PCWSTR dllName = NULL;
-    PCWSTR entryPoint = L"tmr_entry";
+    PCWSTR entryPoint = NULL;
+    PCWSTR entryPointEarly = NULL;
     PCWSTR payloadName = NULL;
     BOOL earlybird = FALSE;
     BOOL nocleanup = FALSE;
@@ -59,6 +68,11 @@ int wmain(int argc, wchar_t** argv) {
             if (i >= argc - 1)
                 goto help;
             entryPoint = argv[++i];
+        }
+        else if (CompareStringOrdinal(L"--entrypoint-early", -1, argv[i], -1, TRUE) == CSTR_EQUAL) {
+            if (i >= argc - 1)
+                goto help;
+            entryPointEarly = argv[++i];
         }
         else if (CompareStringOrdinal(L"--payloadname", -1, argv[i], -1, TRUE) == CSTR_EQUAL) {
             if (i >= argc - 1)
@@ -89,17 +103,16 @@ int wmain(int argc, wchar_t** argv) {
     }
     if (!target || !shimFunc)
         goto help;
+    if (!entryPoint)
+        entryPoint = L"tmr_entry";
+    if (earlybird && !entryPointEarly)
+        entryPointEarly = L"tmr_entry_apc";
     if (!shimArgString)
         shimArgString = L"";
 
     try {
         if (argc < 2)
             throw std::invalid_argument("command line error");
-
-        errno = 0;
-        DWORD pid = wcstoul(target, NULL, 0);
-        if (errno)
-            throw std::system_error(errno, std::generic_category(), "error parsing PID");
 
         HANDLE hProcess;
         wil::unique_process_information pi; // earlybird
@@ -122,6 +135,11 @@ int wmain(int argc, wchar_t** argv) {
             hProcess = pi.hProcess;
         }
         else {
+            errno = 0;
+            DWORD pid = wcstoul(target, NULL, 0);
+            if (errno)
+                throw std::system_error(errno, std::generic_category(), "error parsing PID");
+
             hProcess = OpenProcess(
                 PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ,
                 FALSE,
@@ -166,6 +184,15 @@ int wmain(int argc, wchar_t** argv) {
         DWORD entryOffset, virtualSize;
         auto shellcodeSection = get_shellcode(dll.get(), entryPointAscii.c_str(), &entryOffset, &virtualSize);
 
+        DWORD entryOffsetEarly = entryOffset;
+        if (earlybird) {
+            std::wstring entryPointEarlyWide(entryPointEarly);
+            std::string entryPointEarlyAscii(entryPointEarlyWide.begin(), entryPointEarlyWide.end());
+            auto shellcodeSectionEarly = get_shellcode(dll.get(), entryPointEarlyAscii.c_str(), &entryOffsetEarly, &virtualSize);
+            if (shellcodeSection.data() != shellcodeSectionEarly.data())
+                throw std::runtime_error("thread and early entry points are not in the same section");
+        }
+
         auto shellcodeMem = VirtualAllocEx(
             hProcess,
             NULL,
@@ -208,6 +235,7 @@ int wmain(int argc, wchar_t** argv) {
 
         SHELLCODE_ARGS realArgs = {
             ._ShellcodeBase = (ULONG64)shellcodeMem,
+            ._ThreadEntry = earlybird ? (ULONG64)shellcodeMem + entryOffset : NULL,
             ._PayloadPath = (ULONG64)argMem + payloadPathOffset,
             ._ShimFunction = (ULONG64)argMem + shimFuncNameOffset,
             ._ShimFunctionArgs = (ULONG64)argMem + shimFuncArgOffset,
@@ -230,14 +258,14 @@ int wmain(int argc, wchar_t** argv) {
         if (earlybird) {
             THROW_LAST_ERROR_IF_MSG(
                 !QueueUserAPC(
-                    (PAPCFUNC)((ULONG_PTR)shellcodeMem + entryOffset),
+                    (PAPCFUNC)((ULONG_PTR)shellcodeMem + entryOffsetEarly),
                     pi.hThread,
                     (ULONG_PTR)argMem),
                 "error queuing APC");
             ResumeThread(pi.hThread);
         }
         else {
-            THROW_LAST_ERROR_IF_NULL_MSG(
+            HANDLE remoteThread = THROW_LAST_ERROR_IF_NULL_MSG(
                 CreateRemoteThread(
                     hProcess,
                     NULL,
@@ -247,6 +275,7 @@ int wmain(int argc, wchar_t** argv) {
                     0,
                     NULL),
                 "error starting remote thread");
+            CloseHandle(remoteThread);
         }
 
         return 0;

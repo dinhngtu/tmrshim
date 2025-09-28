@@ -15,6 +15,7 @@
 
 typedef struct _SHELLCODE_ARGS {
     SHELLCODE_PTR(PVOID, ShellcodeBase);
+    SHELLCODE_PTR(LPTHREAD_START_ROUTINE, ThreadEntry);
     SHELLCODE_PTR(PCWSTR, PayloadPath);
     SHELLCODE_PTR(PCSTR, ShimFunction);
     SHELLCODE_PTR(PCWSTR, ShimFunctionArgs);

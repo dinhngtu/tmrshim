@@ -14,12 +14,12 @@ static DECLSPEC_NORETURN void do_tmr_cleanup(HMODULE instance, PSHELLCODE_ARGS p
     FreeLibraryAndExitThread(instance, exitcode);
 }
 
-static DWORD WINAPI tmr_cleanup_worker(LPVOID _arg) {
+static DWORD WINAPI tmr_cleanup_worker_earlybird(LPVOID _arg) {
     TMR_APC_CLEANUP arg = *(PTMR_APC_CLEANUP)_arg;
 
     // there's no safe way to ensure no injected APC is running,
     // so we just wait for the original main thread to die
-    // this means by default the injected DLL gets unloaded when the main thread exits!
+    // this means by default, the injected DLL gets unloaded when the main thread exits!
     WaitForSingleObject(arg.target, INFINITE);
     CloseHandle(arg.target);
     free(_arg);
@@ -46,7 +46,7 @@ static void tmr_prepare_cleanup_earlybird(HMODULE instance, PSHELLCODE_ARGS pi) 
     HANDLE cleanup_thread = CreateThread(
         NULL,
         0,
-        &tmr_cleanup_worker,
+        &tmr_cleanup_worker_earlybird,
         cleanup,
         0,
         NULL);

@@ -2,4 +2,5 @@ LIBRARY
 
 EXPORTS
     tmr_entry
+    tmr_entry_apc_direct
     tmr_entry_apc
