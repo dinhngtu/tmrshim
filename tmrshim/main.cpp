@@ -28,12 +28,18 @@ static std::vector<uint8_t> prepare_shellcode_args(
     if (payloadPathOffset)
         *payloadPathOffset = argBytes.size();
 
-    argBytes.insert(argBytes.end(), (uint8_t*)payloadPath, (uint8_t*)payloadPath + (wcslen(payloadPath) + 1) * sizeof(WCHAR));
+    argBytes.insert(
+        argBytes.end(),
+        (uint8_t*)payloadPath,
+        (uint8_t*)payloadPath + (wcslen(payloadPath) + 1) * sizeof(WCHAR));
 
     if (shimFuncNameOffset)
         *shimFuncNameOffset = argBytes.size();
 
-    argBytes.insert(argBytes.end(), shimFuncAscii, shimFuncAscii + strlen(shimFuncAscii) + 1);
+    argBytes.insert(
+        argBytes.end(),
+        shimFuncAscii,
+        shimFuncAscii + strlen(shimFuncAscii) + 1);
     argBytes.push_back(0);
 
     while (argBytes.size() % alignof(WCHAR) != 0)
@@ -42,7 +48,10 @@ static std::vector<uint8_t> prepare_shellcode_args(
     if (shimFuncArgOffset)
         *shimFuncArgOffset = argBytes.size();
 
-    argBytes.insert(argBytes.end(), (uint8_t*)shimFuncArg, (uint8_t*)shimFuncArg + (wcslen(shimFuncArg) + 1) * sizeof(WCHAR));
+    argBytes.insert(
+        argBytes.end(),
+        (uint8_t*)shimFuncArg,
+        (uint8_t*)shimFuncArg + (wcslen(shimFuncArg) + 1) * sizeof(WCHAR));
 
     return argBytes;
 }
@@ -141,7 +150,12 @@ int wmain(int argc, wchar_t** argv) {
                 throw std::system_error(errno, std::generic_category(), "error parsing PID");
 
             hProcess = OpenProcess(
-                PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ,
+                (
+                    PROCESS_CREATE_THREAD |
+                    PROCESS_QUERY_INFORMATION |
+                    PROCESS_VM_OPERATION |
+                    PROCESS_VM_WRITE |
+                    PROCESS_VM_READ),
                 FALSE,
                 pid);
             THROW_LAST_ERROR_IF_NULL_MSG(hProcess, "error opening process %lu", pid);
@@ -188,7 +202,10 @@ int wmain(int argc, wchar_t** argv) {
         if (earlybird) {
             std::wstring entryPointEarlyWide(entryPointEarly);
             std::string entryPointEarlyAscii(entryPointEarlyWide.begin(), entryPointEarlyWide.end());
-            auto shellcodeSectionEarly = get_shellcode(dll.get(), entryPointEarlyAscii.c_str(), &entryOffsetEarly, &virtualSize);
+            auto shellcodeSectionEarly = get_shellcode(
+                dll.get(),
+                entryPointEarlyAscii.c_str(),
+                &entryOffsetEarly, &virtualSize);
             if (shellcodeSection.data() != shellcodeSectionEarly.data())
                 throw std::runtime_error("thread and early entry points are not in the same section");
         }

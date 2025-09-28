@@ -34,7 +34,11 @@ wil::unique_hmodule load_dll(_In_ HANDLE hProcess, _In_opt_ PCWSTR dllName, _Out
     return wil::unique_hmodule(hModule);
 }
 
-std::span<const uint8_t> get_shellcode(_In_ HMODULE hModule, _In_ PCSTR entryPoint, _Out_ PDWORD entryOffset, _Out_ PDWORD virtualSize) {
+std::span<const uint8_t> get_shellcode(
+    _In_ HMODULE hModule,
+    _In_ PCSTR entryPoint,
+    _Out_ PDWORD entryOffset,
+    _Out_ PDWORD virtualSize) {
     // see LDR_IS_RESOURCE
     PCHAR base = (PCHAR)((ULONG_PTR)hModule & ~(ULONG_PTR)3);
 

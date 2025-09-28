@@ -78,7 +78,10 @@ static __forceinline SHELLCODE LSTATUS tmr_get_kernel32(_Out_ PVOID* pK32Base) {
 
     PCHAR k32Base = NULL;
     while (link) {
-        PLDR_DATA_TABLE_ENTRY entry = (PLDR_DATA_TABLE_ENTRY)CONTAINING_RECORD(link, LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks);
+        PLDR_DATA_TABLE_ENTRY entry = (PLDR_DATA_TABLE_ENTRY)CONTAINING_RECORD(
+            link,
+            LDR_DATA_TABLE_ENTRY,
+            InMemoryOrderLinks);
         if (sc_memcaseeqW(sKernel32Dll, (&entry->FullDllName)[1].Buffer, ARRAYSIZE(sKernel32Dll))) {
             k32Base = (PCHAR)entry->DllBase;
             break;
@@ -96,7 +99,10 @@ static __forceinline SHELLCODE LSTATUS tmr_get_kernel32(_Out_ PVOID* pK32Base) {
     return ERROR_SUCCESS;
 }
 
-_Ret_maybenull_ static SHELLCODE FARPROC tmr_get_function(_In_ PCHAR k32Base, _In_reads_(nameLen) PSTR wantedName, _In_ SIZE_T nameLen) {
+_Ret_maybenull_ static SHELLCODE FARPROC tmr_get_function(
+    _In_ PCHAR k32Base,
+    _In_reads_(nameLen) PSTR wantedName,
+    _In_ SIZE_T nameLen) {
     FARPROC fun = NULL;
 
     PIMAGE_NT_HEADERS k32NtHdr = (PIMAGE_NT_HEADERS)(k32Base + ((PIMAGE_DOS_HEADER)k32Base)->e_lfanew);
@@ -132,31 +138,46 @@ static SHELLCODE LSTATUS tmr_get_shimdata(_In_ LPVOID arg, _Out_ PTMR_SHIMDATA s
         return err;
     }
 
-    shimData->ImpLoadLibraryW = (LoadLibraryWFunc)tmr_get_function(shimData->K32Base, sLoadLibraryW, ARRAYSIZE(sLoadLibraryW));
+    shimData->ImpLoadLibraryW = (LoadLibraryWFunc)tmr_get_function(
+        shimData->K32Base,
+        sLoadLibraryW,
+        ARRAYSIZE(sLoadLibraryW));
     if (!shimData->ImpLoadLibraryW) {
         TMR_DEBUGBREAK();
         return ERROR_INVALID_FUNCTION;
     }
 
-    shimData->ImpGetProcAddress = (GetProcAddressFunc)tmr_get_function(shimData->K32Base, sGetProcAddress, ARRAYSIZE(sGetProcAddress));
+    shimData->ImpGetProcAddress = (GetProcAddressFunc)tmr_get_function(
+        shimData->K32Base,
+        sGetProcAddress,
+        ARRAYSIZE(sGetProcAddress));
     if (!shimData->ImpGetProcAddress) {
         TMR_DEBUGBREAK();
         return ERROR_INVALID_FUNCTION;
     }
 
-    shimData->ImpGetLastError = (GetLastErrorFunc)tmr_get_function(shimData->K32Base, sGetLastError, ARRAYSIZE(sGetLastError));
+    shimData->ImpGetLastError = (GetLastErrorFunc)tmr_get_function(
+        shimData->K32Base,
+        sGetLastError,
+        ARRAYSIZE(sGetLastError));
     if (!shimData->ImpGetLastError) {
         TMR_DEBUGBREAK();
         return ERROR_INVALID_FUNCTION;
     }
 
-    shimData->ImpCreateThread = (CreateThreadFunc)tmr_get_function(shimData->K32Base, sCreateThread, ARRAYSIZE(sCreateThread));
+    shimData->ImpCreateThread = (CreateThreadFunc)tmr_get_function(
+        shimData->K32Base,
+        sCreateThread,
+        ARRAYSIZE(sCreateThread));
     if (!shimData->ImpCreateThread) {
         TMR_DEBUGBREAK();
         return ERROR_INVALID_FUNCTION;
     }
 
-    shimData->ImpCloseHandle = (CloseHandleFunc)tmr_get_function(shimData->K32Base, sCloseHandle, ARRAYSIZE(sCloseHandle));
+    shimData->ImpCloseHandle = (CloseHandleFunc)tmr_get_function(
+        shimData->K32Base,
+        sCloseHandle,
+        ARRAYSIZE(sCloseHandle));
     if (!shimData->ImpCloseHandle) {
         TMR_DEBUGBREAK();
         return ERROR_INVALID_FUNCTION;
